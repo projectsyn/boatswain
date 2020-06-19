@@ -12,22 +12,25 @@ import (
 func TestGetAutoScalingGroups(t *testing.T) {
 	ltId := "lt-0136aedc6db8deb50"
 	cases := []struct {
-		Instances     []*ec2.DescribeInstancesOutput
-		AsgResp       *autoscaling.DescribeAutoScalingGroupsOutput
-		LtVersionResp *ec2.DescribeLaunchTemplateVersionsOutput
-		ExpectedCount int64
+		Instances        []*ec2.DescribeInstancesOutput
+		InstanceStatuses map[string]*ec2.DescribeInstanceStatusOutput
+		AsgResp          *autoscaling.DescribeAutoScalingGroupsOutput
+		LtVersionResp    *ec2.DescribeLaunchTemplateVersionsOutput
+		ExpectedCount    int64
 	}{
 		{
-			Instances:     makeAutoScalingGroupInstances(),
-			AsgResp:       makeDescribeAutoScalingGroupsOutput(ltId, 1, 5),
-			LtVersionResp: makeDescribeLaunchTemplateVersionsOutput(ltId, 6),
-			ExpectedCount: 3,
+			Instances:        makeAutoScalingGroupInstances(),
+			InstanceStatuses: makeAutoScalingGroupInstancesStatus(),
+			AsgResp:          makeDescribeAutoScalingGroupsOutput(ltId, 1, 5),
+			LtVersionResp:    makeDescribeLaunchTemplateVersionsOutput(ltId, 6),
+			ExpectedCount:    3,
 		},
 	}
 
 	for _, c := range cases {
 		client := AwsClient{
-			EC2:         &mockEC2Client{LTVersionsResp: c.LtVersionResp, InstancesResp: c.Instances},
+			EC2: &mockEC2Client{LTVersionsResp: c.LtVersionResp, InstancesResp: c.Instances,
+				InstanceStatusResp: c.InstanceStatuses},
 			AutoScaling: &mockAutoScalingClient{Resp: c.AsgResp},
 		}
 

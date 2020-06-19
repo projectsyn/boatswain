@@ -31,4 +31,5 @@ type Instance struct {
 	InstanceId             string
 	InstancePrivateDnsName string
 	LaunchTemplateVersion  int64
+	AvailabilityZone       string
 }

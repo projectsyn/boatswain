@@ -13,8 +13,9 @@ import (
 
 type mockEC2Client struct {
 	ec2iface.EC2API
-	InstancesResp  []*ec2.DescribeInstancesOutput
-	LTVersionsResp *ec2.DescribeLaunchTemplateVersionsOutput
+	InstancesResp      []*ec2.DescribeInstancesOutput
+	InstanceStatusResp map[string]*ec2.DescribeInstanceStatusOutput
+	LTVersionsResp     *ec2.DescribeLaunchTemplateVersionsOutput
 }
 
 type mockAutoScalingClient struct {
@@ -59,6 +60,24 @@ func makeDescribeLaunchTemplateVersionsOutput(launchTemplateId string, latest in
 			&latestVer,
 		},
 	}
+}
+
+func (c *mockEC2Client) DescribeInstanceStatus(input *ec2.DescribeInstanceStatusInput) (*ec2.DescribeInstanceStatusOutput, error) {
+	for instanceId, i := range c.InstanceStatusResp {
+		if instanceId == *input.InstanceIds[0] {
+			return i, nil
+		}
+	}
+	return nil, awserr.New("404", "Instance status not found", nil)
+}
+
+func makeDescribeInstanceStatusOutput(az string) *ec2.DescribeInstanceStatusOutput {
+	resp := &ec2.DescribeInstanceStatusOutput{}
+	status := &ec2.InstanceStatus{
+		AvailabilityZone: aws.String(az),
+	}
+	resp.InstanceStatuses = append(resp.InstanceStatuses, status)
+	return resp
 }
 
 func (c *mockAutoScalingClient) DescribeAutoScalingGroups(input *autoscaling.DescribeAutoScalingGroupsInput) (*autoscaling.DescribeAutoScalingGroupsOutput, error) {
@@ -133,4 +152,12 @@ func makeAutoScalingGroupInstances() []*ec2.DescribeInstancesOutput {
 		makeDescribeInstancesOutput("i-0757e06c74906c484", "ip-10-200-62-98.eu-central-1.compute.internal"),
 	}
 
+}
+
+func makeAutoScalingGroupInstancesStatus() map[string]*ec2.DescribeInstanceStatusOutput {
+	return map[string]*ec2.DescribeInstanceStatusOutput{
+		"i-020969a9bc57c5bb1": makeDescribeInstanceStatusOutput("eu-central-1a"),
+		"i-07d0d125bef27b567": makeDescribeInstanceStatusOutput("eu-central-1b"),
+		"i-0757e06c74906c484": makeDescribeInstanceStatusOutput("eu-central-1c"),
+	}
 }
