@@ -32,7 +32,17 @@ func NewK8sClient() *K8sClient {
 	if err != nil {
 		panic(err.Error())
 	}
-	return &K8sClient{Client: clientset}
+	d := &drain.Helper{
+		Client:              clientset,
+		GracePeriodSeconds:  30,
+		Force:               true,
+		IgnoreAllDaemonSets: true,
+		DeleteLocalData:     true,
+		Timeout:             time.Duration(0),
+		Out:                 os.Stdout,
+		ErrOut:              os.Stderr,
+	}
+	return &K8sClient{Client: clientset, Drainer: d}
 }
 
 func (c *K8sClient) GetNodes() NodeMap {
@@ -50,32 +60,15 @@ func (c *K8sClient) GetNodes() NodeMap {
 	return nodesByName
 }
 
-func (c *K8sClient) AnnotateNode(node *corev1.Node, annotations map[string]string) {
-	for k, v := range annotations {
-		node.ObjectMeta.Annotations[k] = v
-	}
-	_, err := c.Client.CoreV1().Nodes().Update(context.TODO(), node, metav1.UpdateOptions{})
-	if err != nil {
-		panic(err.Error())
-	}
+func (c *K8sClient) CordonNode(node *corev1.Node) error {
+	fmt.Println("Cordoning node", node.ObjectMeta.Name)
+	return drain.RunCordonOrUncordon(c.Drainer, node, true)
 }
 
 func (c *K8sClient) DrainNode(node *corev1.Node) error {
-	d := &drain.Helper{
-		Client:              c.Client,
-		GracePeriodSeconds:  30,
-		Force:               true,
-		IgnoreAllDaemonSets: true,
-		DeleteLocalData:     true,
-		Timeout:             time.Duration(0),
-		Out:                 os.Stdout,
-		ErrOut:              os.Stderr,
-	}
-
-	fmt.Println("Cordoning node", node.ObjectMeta.Name)
-	if err := drain.RunCordonOrUncordon(d, node, true); err != nil {
+	fmt.Println("Draining node", node.ObjectMeta.Name)
+	if err := c.CordonNode(node); err != nil {
 		return err
 	}
-
-	return drain.RunNodeDrain(d, node.ObjectMeta.Name)
+	return drain.RunNodeDrain(c.Drainer, node.ObjectMeta.Name)
 }
