@@ -11,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/kubectl/pkg/drain"
 )
 
 func NewK8sClient() *K8sClient {
@@ -57,4 +58,24 @@ func (c *K8sClient) AnnotateNode(node *corev1.Node, annotations map[string]strin
 	if err != nil {
 		panic(err.Error())
 	}
+}
+
+func (c *K8sClient) DrainNode(node *corev1.Node) error {
+	d := &drain.Helper{
+		Client:              c.Client,
+		GracePeriodSeconds:  30,
+		Force:               true,
+		IgnoreAllDaemonSets: true,
+		DeleteLocalData:     true,
+		Timeout:             time.Duration(0),
+		Out:                 os.Stdout,
+		ErrOut:              os.Stderr,
+	}
+
+	fmt.Println("Cordoning node", node.ObjectMeta.Name)
+	if err := drain.RunCordonOrUncordon(d, node, true); err != nil {
+		return err
+	}
+
+	return drain.RunNodeDrain(d, node.ObjectMeta.Name)
 }
