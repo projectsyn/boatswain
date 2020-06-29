@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -149,22 +150,70 @@ func (c *AwsClient) waitForAllNodesInService(asgName string) error {
 	return w.WaitWithContext(ctx)
 }
 
-func (c *AwsClient) ReplaceNodeInASG(asgName string, replacedInstance Instance) error {
+func (c *AwsClient) ReplaceNodeInASG(asg AutoScalingGroup, replacedInstance Instance) (*Instance, error) {
 	fmt.Println("Replacing instance", replacedInstance.InstanceId)
 	fmt.Println("AZ", replacedInstance.AvailabilityZone)
 
-	asg := c.AutoScaling
-	input := &autoscaling.TerminateInstanceInAutoScalingGroupInput{
-		InstanceId: aws.String(replacedInstance.InstanceId),
+	asgSvc := c.AutoScaling
+	input := &autoscaling.DetachInstancesInput{
+		AutoScalingGroupName: aws.String(asg.AutoScalingGroupName),
+		InstanceIds:          []*string{aws.String(replacedInstance.InstanceId)},
 		// don't decrement desired capacity, to immediately create
 		// replacement instance
 		ShouldDecrementDesiredCapacity: aws.Bool(false),
 	}
-	result, err := asg.TerminateInstanceInAutoScalingGroup(input)
+	result, err := asgSvc.DetachInstances(input)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	fmt.Println(result)
 
-	return c.waitForAllNodesInService(asgName)
+	instances, err := asgSvc.DescribeAutoScalingInstances(&autoscaling.DescribeAutoScalingInstancesInput{})
+	if err != nil {
+		return nil, err
+	}
+	prevInstanceIds := map[string]bool{}
+	for _, i := range asg.Instances {
+		prevInstanceIds[i.InstanceId] = true
+	}
+	var newInstance *Instance
+	newInstance = nil
+	for _, i := range instances.AutoScalingInstances {
+		if *i.AutoScalingGroupName != asg.AutoScalingGroupName {
+			continue
+		}
+		if _, ok := prevInstanceIds[*i.InstanceId]; ok {
+			continue
+		}
+		iltver, err := strconv.ParseInt(*i.LaunchTemplate.Version, 10, 64)
+		if err != nil {
+			// TODO: error handling
+		}
+		instanceDns, err := c.getInstancePrivateDnsName(i.InstanceId)
+		if err != nil {
+			fmt.Printf("Error getting Instance DNS name: %v", err)
+			// TODO: error handling
+		}
+		instanceAz, err := c.getInstanceAvailabilityZone(i.InstanceId)
+		if err != nil {
+			fmt.Printf("Error getting Instance availability zone: %v", err)
+			// TODO: error handling
+		}
+		newInstance = &Instance{
+			InstanceId:             *i.InstanceId,
+			InstancePrivateDnsName: *instanceDns,
+			LaunchTemplateVersion:  iltver,
+			AvailabilityZone:       *instanceAz,
+		}
+	}
+
+	if err := c.waitForAllNodesInService(asg.AutoScalingGroupName); err != nil {
+		return newInstance, err
+	}
+
+	return newInstance, nil
+}
+
+func (c *AwsClient) TerminateInstance(instanceId string) error {
+	return errors.New("Not yet implemented")
 }

@@ -11,29 +11,44 @@ import (
 )
 
 func replaceAsgNode(awsClient *aws.AwsClient, k8sClient *k8sclient.K8sClient,
-	asgName string, instance aws.Instance, node *corev1.Node) error {
+	asg aws.AutoScalingGroup, instance aws.Instance, node *corev1.Node) error {
 	// procedure:
-	// 1. drain node
-	if err := k8sClient.DrainNode(node); err != nil {
+	// 1. cordon node
+	fmt.Println("Cordon node")
+	if err := k8sClient.CordonNode(node); err != nil {
 		return err
 	}
 	// 2. replace node in ASG
-	// TBD: Is the replacement node
-	// created in the same AZ as the
-	// removed node when a specific node
-	// is removed from ASG?
-	fmt.Println("Replacing Node", instance.InstanceId)
-	if err := awsClient.ReplaceNodeInASG(asgName, instance); err != nil {
+	fmt.Println("Replace ASG instance", instance.InstanceId)
+	var newInstance *aws.Instance
+	if i, err := awsClient.ReplaceNodeInASG(asg, instance); err == nil {
+		newInstance = i
+	} else {
 		return err
 	}
-	// 3. Wait for no pods pending
+	// 3. Wait for new node ready
+	fmt.Println("Wait for new node ready")
+	if err := k8sClient.WaitUntilNodeReady(newInstance.InstancePrivateDnsName); err != nil {
+		return err
+	}
+	// 4. Drain old node
+	fmt.Println("Drain old node")
+	if err := k8sClient.DrainNode(node); err != nil {
+		return err
+	}
+	// 5. wait until no pods pending
 	fmt.Println("Wait until no pods pending")
-	// 4. Delete old K8s node object
+	if err := k8sClient.WaitUntilNoPodsPending(); err != nil {
+		return err
+	}
+	// 6. Delete old K8s node object
 	fmt.Println("Delete old node object")
 	if err := k8sClient.DeleteNode(instance.InstancePrivateDnsName); err != nil {
 		return err
 	}
-	return k8sClient.WaitUntilNoPodsPending()
+	// 7. Terminate old instance
+	fmt.Println("Terminate old instance")
+	return awsClient.TerminateInstance(instance.InstanceId)
 }
 
 func main() {
@@ -65,7 +80,7 @@ func main() {
 						i.InstanceId, i.InstancePrivateDnsName, i.LaunchTemplateVersion)
 					if err := replaceAsgNode(awsClient,
 						k8sClient,
-						asg.AutoScalingGroupName,
+						asg,
 						i,
 						nodes[i.InstancePrivateDnsName]); err != nil {
 						panic(err.Error())
