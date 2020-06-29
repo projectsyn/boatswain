@@ -155,18 +155,46 @@ func (c *AwsClient) ReplaceNodeInASG(asg AutoScalingGroup, replacedInstance Inst
 	fmt.Println("AZ", replacedInstance.AvailabilityZone)
 
 	asgSvc := c.AutoScaling
-	input := &autoscaling.DetachInstancesInput{
+	detachInput := &autoscaling.DetachInstancesInput{
 		AutoScalingGroupName: aws.String(asg.AutoScalingGroupName),
 		InstanceIds:          []*string{aws.String(replacedInstance.InstanceId)},
 		// don't decrement desired capacity, to immediately create
 		// replacement instance
 		ShouldDecrementDesiredCapacity: aws.Bool(false),
 	}
-	result, err := asgSvc.DetachInstances(input)
+	detach, err := asgSvc.DetachInstances(detachInput)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(result)
+	fmt.Println(detach)
+
+	// TODO: Wait for new instance provisioning started
+	describeActivitiesInput := &autoscaling.DescribeScalingActivitiesInput{
+		AutoScalingGroupName: aws.String(asg.AutoScalingGroupName),
+		MaxRecords:           aws.Int64(2),
+	}
+	newInstanceCreating := false
+	for !newInstanceCreating {
+		activities, err := asgSvc.DescribeScalingActivities(describeActivitiesInput)
+		if err != nil {
+			return nil, err
+		}
+		for idx, activity := range activities.Activities {
+			if *activity.ActivityId == *detach.Activities[0].ActivityId {
+				fmt.Printf("[%d] Detaching activity status: %v\n", idx, *activity.StatusMessage)
+				if idx != 1 {
+					fmt.Println("New instance not created yet")
+				} else {
+					newInstanceCreating = true
+				}
+				break
+			}
+		}
+		if newInstanceCreating {
+			fmt.Println(*activities.Activities[1].StatusMessage)
+		}
+		time.Sleep(15 * time.Second)
+	}
 
 	instances, err := asgSvc.DescribeAutoScalingInstances(&autoscaling.DescribeAutoScalingInstancesInput{})
 	if err != nil {
@@ -176,13 +204,17 @@ func (c *AwsClient) ReplaceNodeInASG(asg AutoScalingGroup, replacedInstance Inst
 	for _, i := range asg.Instances {
 		prevInstanceIds[i.InstanceId] = true
 	}
+	fmt.Println(prevInstanceIds)
 	var newInstance *Instance
 	newInstance = nil
 	for _, i := range instances.AutoScalingInstances {
+		fmt.Printf("Checking instance %v\n", *i.InstanceId)
 		if *i.AutoScalingGroupName != asg.AutoScalingGroupName {
+			fmt.Printf("%v not considered due to ASG name %v\n", *i.InstanceId, *i.AutoScalingGroupName)
 			continue
 		}
 		if _, ok := prevInstanceIds[*i.InstanceId]; ok {
+			fmt.Printf("%v not considered due to being present in previous set of instances\n", *i.InstanceId)
 			continue
 		}
 		iltver, err := strconv.ParseInt(*i.LaunchTemplate.Version, 10, 64)
