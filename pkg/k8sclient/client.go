@@ -2,6 +2,7 @@ package k8sclient
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -103,4 +104,8 @@ func (c *K8sClient) DeleteNode(nodeName string) error {
 	// TODO: consider making this wait until node status is NotReady
 	// before deleting object
 	return c.Client.CoreV1().Nodes().Delete(context.TODO(), nodeName, metav1.DeleteOptions{})
+}
+
+func (c *K8sClient) WaitUntilNodeReady(nodeName string) error {
+	return errors.New("Not yet implemented")
 }
