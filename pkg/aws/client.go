@@ -150,14 +150,11 @@ func (c *AwsClient) waitForAllNodesInService(asgName string) error {
 	return w.WaitWithContext(ctx)
 }
 
-func (c *AwsClient) ReplaceNodeInASG(asg AutoScalingGroup, replacedInstance Instance) (*Instance, error) {
-	fmt.Println("Replacing instance", replacedInstance.InstanceId)
-	fmt.Println("AZ", replacedInstance.AvailabilityZone)
-
+func (c *AwsClient) DetachNodeFromASG(asg AutoScalingGroup, instance Instance) (*autoscaling.Activity, error) {
 	asgSvc := c.AutoScaling
 	detachInput := &autoscaling.DetachInstancesInput{
 		AutoScalingGroupName: aws.String(asg.AutoScalingGroupName),
-		InstanceIds:          []*string{aws.String(replacedInstance.InstanceId)},
+		InstanceIds:          []*string{aws.String(instance.InstanceId)},
 		// don't decrement desired capacity, to immediately create
 		// replacement instance
 		ShouldDecrementDesiredCapacity: aws.Bool(false),
@@ -166,36 +163,11 @@ func (c *AwsClient) ReplaceNodeInASG(asg AutoScalingGroup, replacedInstance Inst
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(detach)
+	return detach.Activities[0], nil
+}
 
-	// TODO: Wait for new instance provisioning started
-	describeActivitiesInput := &autoscaling.DescribeScalingActivitiesInput{
-		AutoScalingGroupName: aws.String(asg.AutoScalingGroupName),
-		MaxRecords:           aws.Int64(2),
-	}
-	newInstanceCreating := false
-	for !newInstanceCreating {
-		activities, err := asgSvc.DescribeScalingActivities(describeActivitiesInput)
-		if err != nil {
-			return nil, err
-		}
-		for idx, activity := range activities.Activities {
-			if *activity.ActivityId == *detach.Activities[0].ActivityId {
-				fmt.Printf("[%d] Detaching activity status: %v\n", idx, *activity.StatusMessage)
-				if idx != 1 {
-					fmt.Println("New instance not created yet")
-				} else {
-					newInstanceCreating = true
-				}
-				break
-			}
-		}
-		if newInstanceCreating {
-			fmt.Println(*activities.Activities[1].StatusMessage)
-		}
-		time.Sleep(15 * time.Second)
-	}
-
+func (c *AwsClient) IdentifyNewInstance(asg AutoScalingGroup) (*Instance, error) {
+	asgSvc := c.AutoScaling
 	instances, err := asgSvc.DescribeAutoScalingInstances(&autoscaling.DescribeAutoScalingInstancesInput{})
 	if err != nil {
 		return nil, err
@@ -244,6 +216,59 @@ func (c *AwsClient) ReplaceNodeInASG(asg AutoScalingGroup, replacedInstance Inst
 	}
 
 	return newInstance, nil
+}
+
+func (c *AwsClient) WaitForASGScaleUp(asg AutoScalingGroup, activity *autoscaling.Activity) error {
+	asgSvc := c.AutoScaling
+	describeActivitiesInput := &autoscaling.DescribeScalingActivitiesInput{
+		AutoScalingGroupName: aws.String(asg.AutoScalingGroupName),
+		MaxRecords:           aws.Int64(2),
+	}
+	newInstanceCreating := false
+	for !newInstanceCreating {
+		activities, err := asgSvc.DescribeScalingActivities(describeActivitiesInput)
+		if err != nil {
+			return err
+		}
+		for idx, a := range activities.Activities {
+			if *a.ActivityId == *activity.ActivityId {
+				msg := ""
+				if a.StatusMessage != nil {
+					msg = *a.StatusMessage
+				}
+				fmt.Printf("[%d] Detaching activity status: %v (%v)\n", idx, *a.StatusCode, msg)
+				if idx != 1 {
+					fmt.Println("New instance not created yet")
+				} else {
+					newInstanceCreating = true
+				}
+				break
+			}
+		}
+		if newInstanceCreating {
+			fmt.Println(*activities.Activities[0].StatusCode)
+		}
+		time.Sleep(15 * time.Second)
+	}
+	return nil
+}
+
+func (c *AwsClient) ReplaceNodeInASG(asg AutoScalingGroup, replacedInstance Instance) (*Instance, error) {
+	fmt.Println("Detaching node")
+	activity, err := awsClient.DetachNodeFromASG(asg, instance)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(*activity.ActivityId)
+
+	fmt.Println("Waiting for scale-up")
+	err = awsClient.WaitForASGScaleUp(asg, activity)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println("Identify new instance")
+	return awsClient.IdentifyNewInstance(asg)
 }
 
 func (c *AwsClient) TerminateInstance(instanceId string) error {

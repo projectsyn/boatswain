@@ -106,6 +106,32 @@ func (c *K8sClient) DeleteNode(nodeName string) error {
 	return c.Client.CoreV1().Nodes().Delete(context.TODO(), nodeName, metav1.DeleteOptions{})
 }
 
-func (c *K8sClient) WaitUntilNodeReady(nodeName string) error {
-	return errors.New("Not yet implemented")
+func isNodeReady(node *corev1.Node) bool {
+	for _, cond := range node.Status.Conditions {
+		if cond.Type == corev1.NodeReady {
+			if cond.Status == corev1.ConditionTrue {
+				return true
+			} else {
+				return false
+			}
+		}
+	}
+	return false
+}
+
+func (c *K8sClient) WaitUntilNodeReady(nodeName string) (*corev1.Node, error) {
+	nodeReady := false
+	for !nodeReady {
+		nodes := c.GetNodes()
+		if newNode, ok := nodes[nodeName]; ok {
+			fmt.Println("New node object exists")
+			nodeReady = isNodeReady(newNode)
+			fmt.Printf("Kubelet posting ready? %v\n", nodeReady)
+			if nodeReady {
+				return newNode, nil
+			}
+		}
+		time.Sleep(15 * time.Second)
+	}
+	return nil, errors.New("should be unreachable")
 }
