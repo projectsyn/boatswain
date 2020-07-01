@@ -272,5 +272,11 @@ func (c *AwsClient) ReplaceNodeInASG(asg AutoScalingGroup, replacedInstance Inst
 }
 
 func (c *AwsClient) TerminateInstance(instanceId string) error {
-	return errors.New("Not yet implemented")
+	ec2svc := c.EC2
+
+	input := &ec2.TerminateInstancesInput{
+		InstanceIds: []*string{aws.String(instanceId)},
+	}
+	_, err := ec2svc.TerminateInstances(input)
+	return err
 }
