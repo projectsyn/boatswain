@@ -20,15 +20,14 @@ func replaceAsgNode(awsClient *aws.AwsClient, k8sClient *k8sclient.K8sClient,
 	}
 	// 2. replace node in ASG
 	fmt.Println("Replace ASG instance", instance.InstanceId)
-	var newInstance *aws.Instance
-	if i, err := awsClient.ReplaceNodeInASG(asg, instance); err == nil {
-		newInstance = i
-	} else {
+	newInstance, err := awsClient.ReplaceNodeInASG(asg, instance)
+	if err != nil {
 		return err
 	}
 	// 3. Wait for new node ready
 	fmt.Println("Wait for new node ready")
-	if err := k8sClient.WaitUntilNodeReady(newInstance.InstancePrivateDnsName); err != nil {
+	newNode, err := k8sClient.WaitUntilNodeReady(newInstance.InstancePrivateDnsName)
+	if err != nil {
 		return err
 	}
 	// 4. Drain old node
@@ -57,7 +56,7 @@ func main() {
 
 	theNode := os.Getenv("NODE")
 	if theNode != "" {
-		fmt.Println("only draining", theNode)
+		fmt.Println("only considering", theNode)
 	}
 
 	nodes := k8sClient.GetNodes()
@@ -72,18 +71,29 @@ func main() {
 			asg.AutoScalingGroupName, asg.DesiredCapacity, asg.MaxSize, asg.LaunchTemplateVersion)
 		if asg.DesiredCapacity > 0 {
 			for _, i := range asg.Instances {
-				if i.LaunchTemplateVersion < asg.LaunchTemplateVersion {
-					if theNode != "" && i.InstancePrivateDnsName != theNode {
-						continue
+				if theNode != "" {
+					if i.InstancePrivateDnsName == theNode {
+						fmt.Printf("found node %v (%v) -- replacing it\n",
+							i.InstancePrivateDnsName, i.InstanceId)
+						if err := replaceAsgNode(awsClient,
+							k8sClient,
+							asg,
+							i,
+							nodes[i.InstancePrivateDnsName]); err != nil {
+							panic(err.Error())
+						}
 					}
-					fmt.Printf("Instance %v (%v) uses old LaunchTemplateVersion %v\n",
-						i.InstanceId, i.InstancePrivateDnsName, i.LaunchTemplateVersion)
-					if err := replaceAsgNode(awsClient,
-						k8sClient,
-						asg,
-						i,
-						nodes[i.InstancePrivateDnsName]); err != nil {
-						panic(err.Error())
+				} else {
+					if i.LaunchTemplateVersion < asg.LaunchTemplateVersion {
+						fmt.Printf("Instance %v (%v) uses old LaunchTemplateVersion %v\n",
+							i.InstanceId, i.InstancePrivateDnsName, i.LaunchTemplateVersion)
+						if err := replaceAsgNode(awsClient,
+							k8sClient,
+							asg,
+							i,
+							nodes[i.InstancePrivateDnsName]); err != nil {
+							panic(err.Error())
+						}
 					}
 				}
 			}
