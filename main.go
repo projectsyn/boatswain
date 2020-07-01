@@ -30,6 +30,7 @@ func replaceAsgNode(awsClient *aws.AwsClient, k8sClient *k8sclient.K8sClient,
 	if err != nil {
 		return err
 	}
+	fmt.Printf("New node %v ready\n", newNode.ObjectMeta.Name)
 	// 4. Drain old node
 	fmt.Println("Drain old node")
 	if err := k8sClient.DrainNode(node); err != nil {

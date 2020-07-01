@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -253,22 +252,22 @@ func (c *AwsClient) WaitForASGScaleUp(asg AutoScalingGroup, activity *autoscalin
 	return nil
 }
 
-func (c *AwsClient) ReplaceNodeInASG(asg AutoScalingGroup, replacedInstance Instance) (*Instance, error) {
+func (c *AwsClient) ReplaceNodeInASG(asg AutoScalingGroup, instance Instance) (*Instance, error) {
 	fmt.Println("Detaching node")
-	activity, err := awsClient.DetachNodeFromASG(asg, instance)
+	activity, err := c.DetachNodeFromASG(asg, instance)
 	if err != nil {
 		return nil, err
 	}
 	fmt.Println(*activity.ActivityId)
 
 	fmt.Println("Waiting for scale-up")
-	err = awsClient.WaitForASGScaleUp(asg, activity)
+	err = c.WaitForASGScaleUp(asg, activity)
 	if err != nil {
 		return nil, err
 	}
 
 	fmt.Println("Identify new instance")
-	return awsClient.IdentifyNewInstance(asg)
+	return c.IdentifyNewInstance(asg)
 }
 
 func (c *AwsClient) TerminateInstance(instanceId string) error {
