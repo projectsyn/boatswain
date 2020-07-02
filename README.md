@@ -11,6 +11,10 @@ Boatswain is configured via environment variables
 
 The variable `NODE` can be set to a node name to only operate on that node.
 
+The variable `FORCE_REPLACE` can be set to "true" to force replacing all nodes
+instead of only nodes with outdated launch templates. This configuration
+overrides the variable `NODE`, and will always replace all nodes.
+
 ### AWS API client configuration
 
 * `AWS_REGION` to set the AWS region in which to operate
