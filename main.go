@@ -31,23 +31,28 @@ func replaceAsgNode(awsClient *aws.AwsClient, k8sClient *k8sclient.K8sClient,
 	if err != nil {
 		return err
 	}
+	// 4. Ensure node-role labels exist on new node
+	fmt.Println("Set node-role.kubernetes.io labels on new node")
+	if err := k8sClient.SetNodeRoles(newNode); err != nil {
+		return err
+	}
 	fmt.Printf("New node %v ready\n", newNode.ObjectMeta.Name)
-	// 4. Drain old node
+	// 5. Drain old node
 	fmt.Println("Drain old node")
 	if err := k8sClient.DrainNode(node); err != nil {
 		return err
 	}
-	// 5. wait until no pods pending
+	// 6. wait until no pods pending
 	fmt.Println("Wait until no pods pending")
 	if err := k8sClient.WaitUntilNoPodsPending(); err != nil {
 		return err
 	}
-	// 6. Delete old K8s node object
+	// 7. Delete old K8s node object
 	fmt.Println("Delete old node object")
 	if err := k8sClient.DeleteNode(instance.InstancePrivateDnsName); err != nil {
 		return err
 	}
-	// 7. Terminate old instance
+	// 8. Terminate old instance
 	fmt.Println("Terminate old instance")
 	return awsClient.TerminateInstance(instance.InstanceId)
 }

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	//"k8s.io/apimachinery/pkg/api/errors"
@@ -101,8 +102,6 @@ func (c *K8sClient) WaitUntilNoPodsPending() error {
 }
 
 func (c *K8sClient) DeleteNode(nodeName string) error {
-	// TODO: consider making this wait until node status is NotReady
-	// before deleting object
 	return c.Client.CoreV1().Nodes().Delete(context.TODO(), nodeName, metav1.DeleteOptions{})
 }
 
@@ -134,4 +133,23 @@ func (c *K8sClient) WaitUntilNodeReady(nodeName string) (*corev1.Node, error) {
 		time.Sleep(15 * time.Second)
 	}
 	return nil, errors.New("should be unreachable")
+}
+
+func (c *K8sClient) SetNodeRoles(node *corev1.Node) error {
+	nodeName := node.ObjectMeta.Name
+	nodeRoles := []string{}
+	for key, value := range node.ObjectMeta.Labels {
+		if strings.HasPrefix(key, "node.kubernetes.io/") && value == "true" {
+			role := strings.SplitN(key, "/", 2)[1]
+			fmt.Printf("Identified role %v for node %v\n", role, nodeName)
+			nodeRoles = append(nodeRoles, role)
+		}
+	}
+	for _, role := range nodeRoles {
+		noderole := fmt.Sprintf("node-role.kubernetes.io/%v", role)
+		fmt.Println(noderole)
+		node.ObjectMeta.Labels[noderole] = "true"
+	}
+	_, err := c.Client.CoreV1().Nodes().Update(context.TODO(), node, metav1.UpdateOptions{})
+	return err
 }

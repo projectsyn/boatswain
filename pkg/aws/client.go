@@ -239,15 +239,17 @@ func (c *AwsClient) WaitForASGScaleUp(asg AutoScalingGroup, activity *autoscalin
 				if idx != 1 {
 					fmt.Println("New instance not created yet")
 				} else {
-					newInstanceCreating = true
+					fmt.Println(*activities.Activities[0].StatusCode)
+					if *activities.Activities[0].StatusCode == autoscaling.ScalingActivityStatusCodeSuccessful {
+						newInstanceCreating = true
+					}
 				}
 				break
 			}
 		}
-		if newInstanceCreating {
-			fmt.Println(*activities.Activities[0].StatusCode)
+		if !newInstanceCreating {
+			time.Sleep(15 * time.Second)
 		}
-		time.Sleep(15 * time.Second)
 	}
 	return nil
 }
