@@ -67,12 +67,25 @@ func (c *K8sClient) CordonNode(node *corev1.Node) error {
 	return drain.RunCordonOrUncordon(c.Drainer, node, true)
 }
 
+var TransientDrainError = errors.New("Server unable to handle drain request")
+
 func (c *K8sClient) DrainNode(node *corev1.Node) error {
 	fmt.Println("Draining node", node.ObjectMeta.Name)
 	if err := c.CordonNode(node); err != nil {
 		return err
 	}
-	return drain.RunNodeDrain(c.Drainer, node.ObjectMeta.Name)
+	err := drain.RunNodeDrain(c.Drainer, node.ObjectMeta.Name)
+	//	if err != nil {
+	//		fmt.Println(err.Error())
+	//		if strings.HasPrefix(err.Error(), "error when evicting pod") {
+	//			realErrStr := strings.SplitN(err.Error(), ": ", 2)[1]
+	//			fmt.Println("error has prefix 'error when evicting pod'", realErrStr)
+	//			if strings.HasPrefix(realErrStr, "the server is currently unable to handle the request") {
+	//				return TransientDrainError
+	//			}
+	//		}
+	//	}
+	return err
 }
 
 func (c *K8sClient) WaitUntilNoPodsPending() error {

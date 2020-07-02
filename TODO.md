@@ -9,3 +9,5 @@
   replacements when only userdata changes
   -> use aws ssm get-parameter "/aws/service/eks/optimized-ami/${EKS_VERSION}/amazon-linux-2/recommended/image_id"
 * Find a way to trigger upgrades at a given time
+
+* More resilient drain
