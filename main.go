@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/projectsyn/boatswain/pkg/aws"
 	"github.com/projectsyn/boatswain/pkg/k8sclient"
@@ -58,6 +59,12 @@ func main() {
 	theNode := os.Getenv("NODE")
 	if theNode != "" {
 		fmt.Println("only considering", theNode)
+	}
+
+	forceReplace, err := strconv.ParseBool(os.Getenv("FORCE_REPLACE"))
+	if err == nil && forceReplace {
+		// Force replacing all nodes overrides single node operation
+		theNode = ""
 	}
 
 	nodes := k8sClient.GetNodes()
