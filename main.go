@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	//"time"
+	"time"
 
 	"github.com/projectsyn/boatswain/pkg/aws"
 	"github.com/projectsyn/boatswain/pkg/k8sclient"
@@ -40,23 +40,23 @@ func replaceAsgNode(awsClient *aws.AwsClient, k8sClient *k8sclient.K8sClient,
 	fmt.Printf("New node %v ready\n", newNode.ObjectMeta.Name)
 	// 5. Drain old node
 	fmt.Println("Drain old node")
-	if err := k8sClient.DrainNode(node); err != nil {
-		// XXX retry drain here
-		fmt.Println("Error while draining, continuing anyway...")
-		fmt.Println(err.Error())
-	}
-	//retryDrain := true
-	//for retryDrain {
-	//	if err := k8sClient.DrainNode(node); err != nil {
-	//		fmt.Println("Drain error", err)
-	//		if err == k8sclient.TransientDrainError {
-	//			time.Sleep(5)
-	//			continue
-	//		}
-	//		return err
-	//	}
-	//	retryDrain = false
+	//if err := k8sClient.DrainNode(node); err != nil {
+	//	// XXX retry drain here
+	//	fmt.Println("Error while draining, continuing anyway...")
+	//	fmt.Println(err.Error())
 	//}
+	retryDrain := true
+	for retryDrain {
+		if err := k8sClient.DrainNode(node); err != nil {
+			fmt.Println("Drain error: ", err)
+			if err == k8sclient.TransientDrainError {
+				time.Sleep(5)
+				continue
+			}
+			fmt.Println("Ignoring error...")
+		}
+		retryDrain = false
+	}
 	// 6. wait until no pods pending
 	fmt.Println("Wait until no pods pending")
 	if err := k8sClient.WaitUntilNoPodsPending(); err != nil {

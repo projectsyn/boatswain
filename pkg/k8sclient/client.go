@@ -35,8 +35,9 @@ func NewK8sClient() *K8sClient {
 		panic(err.Error())
 	}
 	d := &drain.Helper{
-		Client:              clientset,
-		GracePeriodSeconds:  30,
+		Client: clientset,
+		// use grace periods given in pods
+		GracePeriodSeconds:  -1,
 		Force:               true,
 		IgnoreAllDaemonSets: true,
 		DeleteLocalData:     true,
@@ -75,16 +76,15 @@ func (c *K8sClient) DrainNode(node *corev1.Node) error {
 		return err
 	}
 	err := drain.RunNodeDrain(c.Drainer, node.ObjectMeta.Name)
-	//	if err != nil {
-	//		fmt.Println(err.Error())
-	//		if strings.HasPrefix(err.Error(), "error when evicting pod") {
-	//			realErrStr := strings.SplitN(err.Error(), ": ", 2)[1]
-	//			fmt.Println("error has prefix 'error when evicting pod'", realErrStr)
-	//			if strings.HasPrefix(realErrStr, "the server is currently unable to handle the request") {
-	//				return TransientDrainError
-	//			}
-	//		}
-	//	}
+	if err != nil {
+		errStr := err.Error()
+		if strings.HasPrefix(errStr, "[error when evicting pod") {
+			realErrStr := strings.SplitN(errStr, ": ", 2)[1]
+			if strings.HasPrefix(realErrStr, "the server is currently unable to handle the request") {
+				return TransientDrainError
+			}
+		}
+	}
 	return err
 }
 
