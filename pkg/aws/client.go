@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/ssm"
 )
 
 func NewAwsClient(roleArn string) *AwsClient {
@@ -22,6 +23,7 @@ func NewAwsClient(roleArn string) *AwsClient {
 
 	c.AutoScaling = autoscaling.New(c.Session, c.Config)
 	c.EC2 = ec2.New(c.Session, c.Config)
+	c.SSM = ssm.New(c.Session, c.Config)
 
 	return c
 }
@@ -85,7 +87,9 @@ func (c *AwsClient) GetAutoScalingGroups() (*AutoScalingGroups, error) {
 			fmt.Printf("Error fetching LT versions: %v", err)
 			continue
 		}
-		agroup.LaunchTemplateVersion = *ltVersions.LaunchTemplateVersions[0].VersionNumber
+		latestLt := ltVersions.LaunchTemplateVersions[0]
+		agroup.LaunchTemplateVersion = *latestLt.VersionNumber
+		agroup.CurrentAmi = *latestLt.LaunchTemplateData.ImageId
 		for _, i := range a.Instances {
 			iltver, err := strconv.ParseInt(*i.LaunchTemplate.Version, 10, 64)
 			if err != nil {
