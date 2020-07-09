@@ -2,129 +2,84 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"strconv"
-	"time"
 
-	"github.com/projectsyn/boatswain/pkg/aws"
-	"github.com/projectsyn/boatswain/pkg/k8sclient"
-
-	corev1 "k8s.io/api/core/v1"
+	//	"github.com/projectsyn/boatswain/pkg/aws"
+	//	"github.com/projectsyn/boatswain/pkg/k8sclient"
+	"github.com/alecthomas/kong"
 )
 
-func replaceAsgNode(awsClient *aws.AwsClient, k8sClient *k8sclient.K8sClient,
-	asg aws.AutoScalingGroup, instance aws.Instance, node *corev1.Node) error {
-	// procedure:
-	// 1. cordon node
-	fmt.Println("Cordon node")
-	if err := k8sClient.CordonNode(node); err != nil {
-		return err
-	}
-	// 2. replace node in ASG
-	fmt.Println("Replace ASG instance", instance.InstanceId)
-	newInstance, err := awsClient.ReplaceNodeInASG(asg, instance)
+var (
+	Version   = "undefined"
+	BuildDate = "now"
+)
+
+type HelpCmd struct {
+	Command []string `arg optional help:"Show help on command"`
+}
+
+// Run shows help.
+func (c *HelpCmd) Run(realCtx *kong.Context) error {
+	ctx, err := kong.Trace(realCtx.Kong, c.Command)
 	if err != nil {
 		return err
 	}
-	// 3. Wait for new node ready
-	fmt.Println("Wait for new node ready")
-	newNode, err := k8sClient.WaitUntilNodeReady(newInstance.InstancePrivateDnsName)
+	if ctx.Error != nil {
+		return ctx.Error
+	}
+	err = ctx.PrintUsage(false)
 	if err != nil {
 		return err
 	}
-	// 4. Ensure node-role labels exist on new node
-	fmt.Println("Set node-role.kubernetes.io labels on new node")
-	if err := k8sClient.SetNodeRoles(newNode); err != nil {
-		return err
-	}
-	fmt.Printf("New node %v ready\n", newNode.ObjectMeta.Name)
-	// 5. Drain old node
-	fmt.Println("Drain old node")
-	//if err := k8sClient.DrainNode(node); err != nil {
-	//	// XXX retry drain here
-	//	fmt.Println("Error while draining, continuing anyway...")
-	//	fmt.Println(err.Error())
-	//}
-	retryDrain := true
-	for retryDrain {
-		if err := k8sClient.DrainNode(node); err != nil {
-			fmt.Println("Drain error: ", err)
-			if err == k8sclient.TransientDrainError {
-				time.Sleep(5)
-				continue
-			}
-			fmt.Println("Ignoring error...")
-		}
-		retryDrain = false
-	}
-	// 6. wait until no pods pending
-	fmt.Println("Wait until no pods pending")
-	if err := k8sClient.WaitUntilNoPodsPending(); err != nil {
-		return err
-	}
-	// 7. Delete old K8s node object
-	fmt.Println("Delete old node object")
-	if err := k8sClient.DeleteNode(instance.InstancePrivateDnsName); err != nil {
-		return err
-	}
-	// 8. Terminate old instance
-	fmt.Println("Terminate old instance")
-	return awsClient.TerminateInstance(instance.InstanceId)
+	fmt.Fprintln(realCtx.Stdout)
+	return nil
+}
+
+type VersionCmd struct{}
+
+func (v VersionCmd) Run(ctx *kong.Context) error {
+	fmt.Println(Version)
+	return nil
+}
+
+type VersionFlag string
+
+func (v VersionFlag) Decode(ctx *kong.DecodeContext) error { return nil }
+func (v VersionFlag) IsBool() bool                         { return true }
+func (v VersionFlag) BeforeApply(app *kong.Kong, vars kong.Vars) error {
+	fmt.Println(Version)
+	app.Exit(0)
+	return nil
+}
+
+type CLI struct {
+	Version        VersionCmd        `cmd help:"Print version information and quit"`
+	VersionFlag    VersionFlag       `name:"version" help:"Print version information and quit"`
+	Help           HelpCmd           `cmd help:"Show this help"`
+	CheckAmi       CheckAmiCmd       `cmd name:"check-ami" help:"Check whether there's a newer AMI than the one referenced in th current LaunchTemplate"`
+	ListUpgradable ListUpgradableCmd `cmd name:"list-upgradable" help:"List nodes which are running off an outdated LaunchTemplate version"`
+	Upgrade        UpgradeCmd        `cmd help:"Upgrade nodes which are running off an outdated LaunchTemplate version"`
 }
 
 func main() {
-	awsClient := aws.NewAwsClient(os.Getenv("AWS_ASSUME_ROLE_ARN"))
-	k8sClient := k8sclient.NewK8sClient()
+	cli := CLI{}
+	ctx := kong.Parse(&cli,
+		kong.Name("boatswain"),
+		kong.Description("Boatswain helps automate EKS node maintenance and upgrades"),
+		kong.UsageOnError(),
+		kong.ConfigureHelp(kong.HelpOptions{
+			Compact: true,
+			Summary: true,
+		}))
 
-	theNode := os.Getenv("NODE")
-	if theNode != "" {
-		fmt.Println("only considering", theNode)
-	}
-
-	forceReplace, err := strconv.ParseBool(os.Getenv("FORCE_REPLACE"))
-	if err == nil && forceReplace {
-		// Force replacing all nodes overrides single node operation
-		theNode = ""
-	}
-
-	nodes := k8sClient.GetNodes()
-
-	asgs, err := awsClient.GetAutoScalingGroups()
-	if err != nil {
-		panic(err.Error())
-	}
-
-	for _, asg := range asgs.Groups {
-		fmt.Printf("ASG %v %v/%v instances, latest LT version %v\n",
-			asg.AutoScalingGroupName, asg.DesiredCapacity, asg.MaxSize, asg.LaunchTemplateVersion)
-		if asg.DesiredCapacity > 0 {
-			for _, i := range asg.Instances {
-				if theNode != "" {
-					if i.InstancePrivateDnsName == theNode {
-						fmt.Printf("found node %v (%v) -- replacing it\n",
-							i.InstancePrivateDnsName, i.InstanceId)
-						if err := replaceAsgNode(awsClient,
-							k8sClient,
-							asg,
-							i,
-							nodes[i.InstancePrivateDnsName]); err != nil {
-							panic(err.Error())
-						}
-					}
-				} else {
-					if i.LaunchTemplateVersion < asg.LaunchTemplateVersion {
-						fmt.Printf("Instance %v (%v) uses old LaunchTemplateVersion %v\n",
-							i.InstanceId, i.InstancePrivateDnsName, i.LaunchTemplateVersion)
-						if err := replaceAsgNode(awsClient,
-							k8sClient,
-							asg,
-							i,
-							nodes[i.InstancePrivateDnsName]); err != nil {
-							panic(err.Error())
-						}
-					}
-				}
-			}
-		}
-	}
+	err := ctx.Run()
+	ctx.FatalIfErrorf(err)
+	//	awsClient := aws.NewAwsClient(os.Getenv("AWS_ASSUME_ROLE_ARN"))
+	//	k8sClient := k8sclient.NewK8sClient()
+	//
+	//	theNode := os.Getenv("NODE")
+	//	if theNode != "" {
+	//		fmt.Println("only considering", theNode)
+	//	}
+	//
+	//	forceReplace, err := strconv.ParseBool(os.Getenv("FORCE_REPLACE"))
 }
