@@ -122,6 +122,7 @@ func (c *AwsClient) GetAutoScalingGroups() (*AutoScalingGroups, error) {
 			}
 			agroup.Instances = append(agroup.Instances, instance)
 		}
+		agroup.NewInstances = []*Instance{}
 		groups.Groups = append(groups.Groups, &agroup)
 	}
 	return &groups, nil
@@ -282,7 +283,14 @@ func (c *AwsClient) ReplaceNodeInASG(asg *AutoScalingGroup, instance Instance) (
 	}
 
 	fmt.Println("Identify new instance")
-	return c.IdentifyNewInstance(asg)
+	newInstance, err := c.IdentifyNewInstance(asg)
+	if err != nil {
+		return nil, err
+	}
+	// remember new instance
+	asg.NewInstances = append(asg.NewInstances, newInstance)
+
+	return newInstance, nil
 }
 
 func (c *AwsClient) TerminateInstance(instanceId string) error {

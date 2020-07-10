@@ -28,6 +28,7 @@ type AutoScalingGroup struct {
 	MaxSize               int64
 	CurrentAmi            string
 	Instances             []Instance
+	NewInstances          []*Instance
 }
 
 type Instance struct {
