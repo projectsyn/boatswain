@@ -4,7 +4,7 @@ import (
 	"github.com/projectsyn/boatswain/pkg/aws"
 )
 
-func (b *Boatswain) ListUpgradable() ([]aws.Instance, error) {
+func (b *Boatswain) ListUpgradable() ([]*aws.Instance, error) {
 	nodes := b.K8sClient.GetNodes()
 
 	asgs, err := b.AwsClient.GetAutoScalingGroups()
@@ -12,15 +12,14 @@ func (b *Boatswain) ListUpgradable() ([]aws.Instance, error) {
 		return nil, err
 	}
 
-	instances := []aws.Instance{}
+	instances := []*aws.Instance{}
 
 	for _, asg := range asgs.Groups {
 		if asg.DesiredCapacity > 0 {
 			for _, i := range asg.Instances {
 				if i.LaunchTemplateVersion < asg.LaunchTemplateVersion {
-					iCopy := i
 					if _, ok := nodes[i.InstancePrivateDnsName]; ok {
-						instances = append(instances, iCopy)
+						instances = append(instances, i)
 					}
 				}
 			}

@@ -11,7 +11,7 @@ import (
 )
 
 func ReplaceAsgNode(awsClient *aws.AwsClient, k8sClient *k8sclient.K8sClient,
-	asg *aws.AutoScalingGroup, instance aws.Instance, node *corev1.Node) error {
+	asg *aws.AutoScalingGroup, instance *aws.Instance, node *corev1.Node) error {
 	// procedure:
 	// 1. cordon node
 	fmt.Println("Cordon node")
@@ -25,7 +25,7 @@ func ReplaceAsgNode(awsClient *aws.AwsClient, k8sClient *k8sclient.K8sClient,
 		return err
 	}
 	// 3. Wait for new node ready
-	fmt.Println("Wait for new node ready")
+	fmt.Printf("Wait for new node %v ready\n", newInstance.InstancePrivateDnsName)
 	newNode, err := k8sClient.WaitUntilNodeReady(newInstance.InstancePrivateDnsName)
 	if err != nil {
 		return err

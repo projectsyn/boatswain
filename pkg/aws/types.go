@@ -27,7 +27,7 @@ type AutoScalingGroup struct {
 	LaunchTemplateVersion int64
 	MaxSize               int64
 	CurrentAmi            string
-	Instances             []Instance
+	Instances             []*Instance
 	NewInstances          []*Instance
 }
 
