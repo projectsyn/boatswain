@@ -6,16 +6,26 @@ import (
 	"unicode"
 )
 
-func (b *Boatswain) CheckAmi() error {
+func (b *Boatswain) CheckAmi(eksVersionOverride string) error {
 	eksVersion, err := b.K8sClient.GetServerVersion()
 	if err != nil {
 		return err
 	}
+	eksMajor := eksVersion.Major
 	eksMinor := strings.TrimFunc(eksVersion.Minor, func(r rune) bool {
 		return !unicode.IsNumber(r)
 	})
-	fmt.Printf("Current EKS Control Plane Version: v%v.%v\n", eksVersion.Major, eksMinor)
-	latestAmi, err := b.AwsClient.GetLatestEKSAmi(eksVersion.Major, eksMinor)
+	fmt.Printf("Current EKS Control Plane Version: v%v.%v\n", eksMajor, eksMinor)
+	if eksVersionOverride != "" {
+		overrideParts := strings.Split(eksVersionOverride, ".")
+		eksMajor = strings.Trim(overrideParts[0], "v")
+		if eksMajor < eksVersion.Major || (eksMajor == eksVersion.Major && eksMinor > overrideParts[1]) {
+			fmt.Println("Check for older EKS version than current cluster version requested, results may be unreliable")
+		}
+		eksMinor = overrideParts[1]
+		fmt.Printf("User requested check for EKS version v%v.%v\n", eksMajor, eksMinor)
+	}
+	latestAmi, err := b.AwsClient.GetLatestEKSAmi(eksMajor, eksMinor)
 	if err != nil {
 		return err
 	}

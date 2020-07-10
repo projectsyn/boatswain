@@ -17,11 +17,12 @@ type ApiCredentials struct {
 
 type CheckAmiCmd struct {
 	ApiCredentials
+	EksVersion string `help:"EKS version to fetch latest AMI for"`
 }
 
 func (c *CheckAmiCmd) Run(ctx *kong.Context) error {
 	b := boatswain.New(c.AwsAssumeRoleArn)
-	return b.CheckAmi()
+	return b.CheckAmi(c.EksVersion)
 }
 
 type ListUpgradableCmd struct {
