@@ -189,6 +189,9 @@ func (c *AwsClient) IdentifyNewInstance(asg *AutoScalingGroup) (*Instance, error
 	for _, i := range asg.Instances {
 		prevInstanceIds[i.InstanceId] = true
 	}
+	for _, i := range asg.NewInstances {
+		prevInstanceIds[i.InstanceId] = true
+	}
 	fmt.Println(prevInstanceIds)
 	var newInstance *Instance
 	newInstance = nil
