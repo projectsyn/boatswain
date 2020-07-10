@@ -122,7 +122,7 @@ func (c *AwsClient) GetAutoScalingGroups() (*AutoScalingGroups, error) {
 			}
 			agroup.Instances = append(agroup.Instances, instance)
 		}
-		groups.Groups = append(groups.Groups, agroup)
+		groups.Groups = append(groups.Groups, &agroup)
 	}
 	return &groups, nil
 }
@@ -162,7 +162,7 @@ func (c *AwsClient) waitForAllNodesInService(asgName string) error {
 	return w.WaitWithContext(ctx)
 }
 
-func (c *AwsClient) DetachNodeFromASG(asg AutoScalingGroup, instance Instance) (*autoscaling.Activity, error) {
+func (c *AwsClient) DetachNodeFromASG(asg *AutoScalingGroup, instance Instance) (*autoscaling.Activity, error) {
 	asgSvc := c.AutoScaling
 	detachInput := &autoscaling.DetachInstancesInput{
 		AutoScalingGroupName: aws.String(asg.AutoScalingGroupName),
@@ -178,7 +178,7 @@ func (c *AwsClient) DetachNodeFromASG(asg AutoScalingGroup, instance Instance) (
 	return detach.Activities[0], nil
 }
 
-func (c *AwsClient) IdentifyNewInstance(asg AutoScalingGroup) (*Instance, error) {
+func (c *AwsClient) IdentifyNewInstance(asg *AutoScalingGroup) (*Instance, error) {
 	asgSvc := c.AutoScaling
 	instances, err := asgSvc.DescribeAutoScalingInstances(&autoscaling.DescribeAutoScalingInstancesInput{})
 	if err != nil {
@@ -230,7 +230,7 @@ func (c *AwsClient) IdentifyNewInstance(asg AutoScalingGroup) (*Instance, error)
 	return newInstance, nil
 }
 
-func (c *AwsClient) WaitForASGScaleUp(asg AutoScalingGroup, activity *autoscaling.Activity) error {
+func (c *AwsClient) WaitForASGScaleUp(asg *AutoScalingGroup, activity *autoscaling.Activity) error {
 	asgSvc := c.AutoScaling
 	describeActivitiesInput := &autoscaling.DescribeScalingActivitiesInput{
 		AutoScalingGroupName: aws.String(asg.AutoScalingGroupName),
@@ -267,7 +267,7 @@ func (c *AwsClient) WaitForASGScaleUp(asg AutoScalingGroup, activity *autoscalin
 	return nil
 }
 
-func (c *AwsClient) ReplaceNodeInASG(asg AutoScalingGroup, instance Instance) (*Instance, error) {
+func (c *AwsClient) ReplaceNodeInASG(asg *AutoScalingGroup, instance Instance) (*Instance, error) {
 	fmt.Println("Detaching node")
 	activity, err := c.DetachNodeFromASG(asg, instance)
 	if err != nil {
