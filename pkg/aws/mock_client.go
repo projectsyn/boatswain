@@ -50,10 +50,13 @@ func (c *mockEC2Client) DescribeLaunchTemplateVersions(input *ec2.DescribeLaunch
 	return c.LTVersionsResp, nil
 }
 
-func makeDescribeLaunchTemplateVersionsOutput(launchTemplateId string, latest int64) *ec2.DescribeLaunchTemplateVersionsOutput {
+func makeDescribeLaunchTemplateVersionsOutput(launchTemplateId string, latest int64, imageId string) *ec2.DescribeLaunchTemplateVersionsOutput {
 	latestVer := ec2.LaunchTemplateVersion{
 		LaunchTemplateId: aws.String(launchTemplateId),
 		VersionNumber:    aws.Int64(latest),
+		LaunchTemplateData: &ec2.ResponseLaunchTemplateData{
+			ImageId: aws.String(imageId),
+		},
 	}
 	return &ec2.DescribeLaunchTemplateVersionsOutput{
 		LaunchTemplateVersions: []*ec2.LaunchTemplateVersion{
@@ -107,7 +110,7 @@ func makeDescribeAutoScalingGroupsOutput(launchTemplateId string, ltVersionA int
 			LaunchTemplate: &autoscaling.LaunchTemplateSpecification{
 				LaunchTemplateId:   aws.String(launchTemplateId),
 				LaunchTemplateName: aws.String("amazeeio-test1-workers-120200319135046852500000003"),
-				Version:            aws.String(fmt.Sprintf("%v", ltVersionB)),
+				Version:            aws.String(fmt.Sprintf("%v", ltVersionA)),
 			},
 			LifecycleState:       aws.String("InService"),
 			ProtectedFromScaleIn: aws.Bool(false),
@@ -120,7 +123,7 @@ func makeDescribeAutoScalingGroupsOutput(launchTemplateId string, ltVersionA int
 			LaunchTemplate: &autoscaling.LaunchTemplateSpecification{
 				LaunchTemplateId:   aws.String(launchTemplateId),
 				LaunchTemplateName: aws.String("amazeeio-test1-workers-120200319135046852500000003"),
-				Version:            aws.String(fmt.Sprintf("%v", ltVersionA)),
+				Version:            aws.String(fmt.Sprintf("%v", ltVersionB)),
 			},
 			LifecycleState:       aws.String("InService"),
 			ProtectedFromScaleIn: aws.Bool(false),
