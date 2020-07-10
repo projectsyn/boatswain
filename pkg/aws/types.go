@@ -17,7 +17,7 @@ type AwsClient struct {
 }
 
 type AutoScalingGroups struct {
-	Groups []AutoScalingGroup
+	Groups []*AutoScalingGroup
 }
 
 type AutoScalingGroup struct {

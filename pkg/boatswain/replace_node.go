@@ -11,7 +11,7 @@ import (
 )
 
 func ReplaceAsgNode(awsClient *aws.AwsClient, k8sClient *k8sclient.K8sClient,
-	asg aws.AutoScalingGroup, instance aws.Instance, node *corev1.Node) error {
+	asg *aws.AutoScalingGroup, instance aws.Instance, node *corev1.Node) error {
 	// procedure:
 	// 1. cordon node
 	fmt.Println("Cordon node")
