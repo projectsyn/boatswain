@@ -18,3 +18,6 @@
   * Check if we can extract instance id from scaling activity message
 
 * Maybe disable cluster-autoscaler during upgrade -- observe first
+
+* Figure out how to handle spot instance ASGs -- they don't have launch
+  templates but launch configurations
