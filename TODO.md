@@ -1,23 +1,12 @@
 # TODO
 
-* Better error handling
-* Prometheus metrics / alerts when upgrade fails
-* Improve node replacement logic (/)
-  -> Use detachinstances followed by drain&terminate
-* Consider comparing node launch template AMI with latest launch template AMI
-  instead of just comparing launch template versions to avoid node
-  replacements when only userdata changes
-  -> use aws ssm get-parameter "/aws/service/eks/optimized-ami/${EKS_VERSION}/amazon-linux-2/recommended/image_id" (/)
-* Find a way to trigger upgrades at a given time
+Notes on the shortcomings of the implementation. These should be translated
+into issues at some point.
 
-* More resilient drain
-
-* Fix new instance identification when running upgrade -> need to ensure that
-  previously upgraded instances are ignored
-  * Quick fix implemented and tested (/)
-  * Check if we can extract instance id from scaling activity message
-
-* Maybe disable cluster-autoscaler during upgrade -- observe first
-
-* Figure out how to handle spot instance ASGs -- they don't have launch
-  templates but launch configurations
+* [ ] Better error handling
+* [ ] Prometheus metrics / alerts when replacing node fails
+* [ ] Consider comparing node launch template AMI with latest launch template AMI instead of just comparing launch template versions to avoid node replacements when only userdata changes. This was discussed, but discarded, as the current approach also allows replacing nodes to have all nodes pick up new startup configurations even if the EKS AMI does not change.
+* [ ] Find a way to trigger upgrades at a given time. Not necessarily in scope for Boatswain
+* [ ] More resilient drain. This may be fixed in the latest version
+* [ ] Maybe disable cluster-autoscaler during upgrade -- observe how current implementation behaves first
+* [ ] Figure out how to handle spot instance ASGs -- they don't have launch templates but launch configurations
