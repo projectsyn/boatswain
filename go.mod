@@ -3,7 +3,7 @@ module github.com/projectsyn/boatswain
 go 1.14
 
 require (
-	github.com/alecthomas/kong v0.2.9
+	github.com/alecthomas/kong v0.2.11
 	github.com/aws/aws-sdk-go v1.32.3
 	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/stretchr/testify v1.6.1
