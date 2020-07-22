@@ -6,7 +6,7 @@
 
 Boatswain provides three commands:
 
-* `check-ami` fetches the latest EKS AMI for a given version and displays ASGs which do not use the latest AMI
+* `check-ami` fetches the latest EKS AMI for a given version and displays ASGs which don't use the latest AMI
 * `list-upgradable` lists nodes which are running off an outdated launch template version
 * `upgrade` upgrades all nodes which are running off an outdated launch template version
 
