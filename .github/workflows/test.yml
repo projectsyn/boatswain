@@ -2,12 +2,24 @@ name: Test
 on:
   pull_request:
     branches:
-    - master
+      - master
 
 jobs:
+  linting:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        command:
+          - lint_yaml
+          - lint_adoc
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run ${{ matrix.command }}
+        run: make ${{ matrix.command }}
+
   test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
-    - name: Build image
-      run: make docker
+      - uses: actions/checkout@v1
+      - name: Build image
+        run: make docker
