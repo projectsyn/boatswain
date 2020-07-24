@@ -21,7 +21,7 @@ VALE_ARGS ?= --minAlertLevel=error --config=/pages/ROOT/pages/.vale.ini /pages
 BINARY_NAME ?= boatswain
 BINARY_VERSION = $(shell git describe --tags --always --dirty --match=v* || (echo "command failed $$?"; exit 1))
 VERSION ?= $(BINARY_VERSION)
-IMAGE_NAME ?= docker.io/vshn/$(BINARY_NAME):$(VERSION)
+IMAGE_NAME ?= docker.io/projectsyn/$(BINARY_NAME):$(VERSION)
 
 # Go parameters
 GOCMD   ?= go
