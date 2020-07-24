@@ -3,6 +3,15 @@
 Boatswain is a PoC implementation for doing EKS node maintenance/upgrades by
 replacing nodes which were created from outdated launch templates.
 
+## Docker images
+
+Docker images are built automatically from tags and the master branch and
+pushed to
+[DockerHub](https://hub.docker.com/repository/docker/projectsyn/boatswain).
+
+The `latest` tag is built from the master branch, and tagged images are built
+from Git tags.
+
 ## Documentation
 
 Documentation for this component is written using [Asciidoc][asciidoc] and [Antora][antora].
