@@ -22,10 +22,10 @@ func (c *AwsClient) getInstancePrivateDnsName(instanceId *string) (*string, erro
 		return nil, err
 	}
 	if len(result.Reservations) == 0 {
-		return nil, fmt.Errorf("No reservation found for id %v", instanceId)
+		return nil, fmt.Errorf("No reservation found for id %v", *instanceId)
 	}
 	if len(result.Reservations[0].Instances) == 0 {
-		return nil, fmt.Errorf("No instance found for id %v", instanceId)
+		return nil, fmt.Errorf("No instance found for id %v", *instanceId)
 	}
 	return result.Reservations[0].Instances[0].PrivateDnsName, nil
 }
@@ -43,7 +43,7 @@ func (c *AwsClient) getInstanceAvailabilityZone(instanceId *string) (*string, er
 		return nil, err
 	}
 	if len(result.InstanceStatuses) == 0 {
-		return nil, fmt.Errorf("No InstanceStatus available for id %v", instanceId)
+		return nil, fmt.Errorf("No InstanceStatus available for id %v", *instanceId)
 	}
 	return result.InstanceStatuses[0].AvailabilityZone, nil
 }
