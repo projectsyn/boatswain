@@ -33,7 +33,8 @@ func ReplaceAsgNode(awsClient *aws.AwsClient, k8sClient *k8sclient.K8sClient,
 	// 4. Ensure node-role labels exist on new node
 	fmt.Println("Set node-role.kubernetes.io labels on new node")
 	if err := k8sClient.SetNodeRoles(newNode); err != nil {
-		return err
+		fmt.Printf("Failed to set node roles for %v, continuing...\n",
+			newNode.ObjectMeta.Name)
 	}
 	fmt.Printf("New node %v ready\n", newNode.ObjectMeta.Name)
 	// 5. Drain old node
