@@ -1,5 +1,14 @@
 {
   "extends": [
     "config:base"
+  ],
+  "packageRules": [
+    {
+      "packagePatterns": [ "aws-sdk-go" ],
+      "groupName": "aws-sdk-go",
+      "automerge": true,
+      "automergeType": "branch",
+      "updateTypes": ["patch"]
+    }
   ]
 }
