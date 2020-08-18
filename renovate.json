@@ -5,11 +5,14 @@
   "packageRules": [
     {
       "packagePatterns": [ "aws-sdk-go" ],
+      "separateMinorPatch": true
+    },
+    {
+      "packagePatterns": [ "aws-sdk-go"],
       "groupName": "aws-sdk-go",
       "automerge": true,
       "automergeType": "branch",
-      "updateTypes": ["patch"],
-      "separateMinorPatch": true
+      "updateTypes": ["patch"]
     }
   ]
 }
