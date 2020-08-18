@@ -8,7 +8,8 @@
       "groupName": "aws-sdk-go",
       "automerge": true,
       "automergeType": "branch",
-      "updateTypes": ["patch"]
+      "updateTypes": ["patch"],
+      "separateMinorPatch": true
     }
   ]
 }
