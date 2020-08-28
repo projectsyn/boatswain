@@ -13,6 +13,11 @@
       "automerge": true,
       "automergeType": "branch",
       "updateTypes": ["patch"]
+    },
+    {
+      "packagePatterns": [ "^k8s.io/" ],
+      "groupName": "k8s",
+      "updateTypes": ["patch", "minor"]
     }
   ]
 }
