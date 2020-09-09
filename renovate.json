@@ -19,5 +19,8 @@
       "groupName": "k8s",
       "updateTypes": ["patch", "minor"]
     }
+  ],
+  "postUpdateOptions": [
+    "gomodTidy"
   ]
 }
