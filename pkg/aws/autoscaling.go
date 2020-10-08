@@ -44,6 +44,12 @@ func (c *AwsClient) GetAutoScalingGroups() (*AutoScalingGroups, error) {
 		agroup.LaunchTemplateVersion = *latestLt.VersionNumber
 		agroup.CurrentAmi = *latestLt.LaunchTemplateData.ImageId
 		for _, i := range a.Instances {
+			// we skip any instances in the ASG which are in
+			// states other than InService, as the matching EC2
+			// instance may not exist, e.g. in state Standby.
+			if *i.LifecycleState != autoscaling.LifecycleStateInService {
+				continue
+			}
 			instance, err := c.makeInstance(i)
 			if err != nil {
 				fmt.Printf("Error creating Instance struct for %v, continuing...\n", *i.InstanceId)
