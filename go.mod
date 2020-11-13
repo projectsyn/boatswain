@@ -6,8 +6,8 @@ require (
 	github.com/alecthomas/kong v0.2.11
 	github.com/aws/aws-sdk-go v1.35.28
 	github.com/stretchr/testify v1.6.1
-	k8s.io/api v0.19.3
-	k8s.io/apimachinery v0.19.3
-	k8s.io/client-go v0.19.3
-	k8s.io/kubectl v0.19.3
+	k8s.io/api v0.19.4
+	k8s.io/apimachinery v0.19.4
+	k8s.io/client-go v0.19.4
+	k8s.io/kubectl v0.19.4
 )
