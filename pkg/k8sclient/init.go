@@ -34,7 +34,7 @@ func NewK8sClient() *K8sClient {
 		GracePeriodSeconds:  -1,
 		Force:               true,
 		IgnoreAllDaemonSets: true,
-		DeleteLocalData:     true,
+		DeleteEmptyDirData:  true,
 		Timeout:             time.Duration(0),
 		Out:                 os.Stdout,
 		ErrOut:              os.Stderr,
