@@ -5,7 +5,7 @@ go 1.14
 require (
 	github.com/alecthomas/kong v0.2.12
 	github.com/aws/aws-sdk-go v1.36.26
-	github.com/stretchr/testify v1.6.1
+	github.com/stretchr/testify v1.7.0
 	k8s.io/api v0.20.2
 	k8s.io/apimachinery v0.20.2
 	k8s.io/client-go v0.20.2
