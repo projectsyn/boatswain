@@ -13,8 +13,11 @@ func NewAwsClient(roleArn string) *AwsClient {
 	c := &AwsClient{}
 
 	c.Session = session.New()
-	creds := stscreds.NewCredentials(c.Session, roleArn)
-	c.Config = &aws.Config{Credentials: creds}
+
+	if roleArn != "" {
+		creds := stscreds.NewCredentials(c.Session, roleArn)
+		c.Config = &aws.Config{Credentials: creds}
+	}
 
 	c.AutoScaling = autoscaling.New(c.Session, c.Config)
 	c.EC2 = ec2.New(c.Session, c.Config)
