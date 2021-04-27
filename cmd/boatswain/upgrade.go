@@ -17,7 +17,7 @@ func (b *Boatswain) Upgrade(singleNode string, forceReplace bool) error {
 
 	asgs, err := b.AwsClient.GetAutoScalingGroups()
 	if err != nil {
-		return err
+		return fmt.Errorf("getting ASGs: %w", err)
 	}
 
 	for _, asg := range asgs.Groups {

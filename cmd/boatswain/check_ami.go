@@ -9,7 +9,7 @@ import (
 func (b *Boatswain) CheckAmi(eksVersionOverride string) error {
 	eksVersion, err := b.K8sClient.GetServerVersion()
 	if err != nil {
-		return err
+		return fmt.Errorf("getting K8s server version: %w", err)
 	}
 	eksMajor := eksVersion.Major
 	eksMinor := strings.TrimFunc(eksVersion.Minor, func(r rune) bool {
@@ -27,12 +27,12 @@ func (b *Boatswain) CheckAmi(eksVersionOverride string) error {
 	}
 	latestAmi, err := b.AwsClient.GetLatestEKSAmi(eksMajor, eksMinor)
 	if err != nil {
-		return err
+		return fmt.Errorf("getting latest EKS AMI: %w", err)
 	}
 
 	asgs, err := b.AwsClient.GetAutoScalingGroups()
 	if err != nil {
-		return err
+		return fmt.Errorf("getting ASGs: %w", err)
 	}
 
 	// TODO: show AMI name instead of ID
