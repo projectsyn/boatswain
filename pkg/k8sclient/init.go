@@ -1,6 +1,7 @@
 package k8sclient
 
 import (
+	"log"
 	"os"
 	"time"
 
@@ -19,13 +20,13 @@ func NewK8sClient() *K8sClient {
 	kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
 	config, err := kubeConfig.ClientConfig()
 	if err != nil {
-		panic(err.Error())
+		log.Fatal(err.Error())
 	}
 
 	// create the clientset
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		panic(err.Error())
+		log.Fatal(err.Error())
 	}
 	d := &drain.Helper{
 		Client: clientset,

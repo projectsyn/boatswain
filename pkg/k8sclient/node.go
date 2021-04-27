@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -15,7 +16,7 @@ import (
 func (c *K8sClient) GetNodes() NodeMap {
 	nodes, err := c.Client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		panic(err.Error())
+		log.Fatal(err.Error())
 	}
 	nodesByName := NodeMap{}
 	for _, node := range nodes.Items {
