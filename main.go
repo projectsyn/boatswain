@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 
-	//	"github.com/projectsyn/boatswain/pkg/aws"
-	//	"github.com/projectsyn/boatswain/pkg/k8sclient"
 	"github.com/alecthomas/kong"
 )
 
@@ -73,13 +71,4 @@ func main() {
 
 	err := ctx.Run()
 	ctx.FatalIfErrorf(err)
-	//	awsClient := aws.NewAwsClient(os.Getenv("AWS_ASSUME_ROLE_ARN"))
-	//	k8sClient := k8sclient.NewK8sClient()
-	//
-	//	theNode := os.Getenv("NODE")
-	//	if theNode != "" {
-	//		fmt.Println("only considering", theNode)
-	//	}
-	//
-	//	forceReplace, err := strconv.ParseBool(os.Getenv("FORCE_REPLACE"))
 }
