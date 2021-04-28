@@ -1,7 +1,6 @@
 package k8sclient
 
 import (
-	"log"
 	"os"
 	"time"
 
@@ -10,7 +9,7 @@ import (
 	"k8s.io/kubectl/pkg/drain"
 )
 
-func NewK8sClient() *K8sClient {
+func NewK8sClient() (*K8sClient, error) {
 	// if you want to change the loading rules (which files in which order), you can do so here
 	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
 
@@ -20,13 +19,13 @@ func NewK8sClient() *K8sClient {
 	kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
 	config, err := kubeConfig.ClientConfig()
 	if err != nil {
-		log.Fatal(err.Error())
+		return nil, err
 	}
 
 	// create the clientset
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		log.Fatal(err.Error())
+		return nil, err
 	}
 	d := &drain.Helper{
 		Client: clientset,
@@ -43,5 +42,5 @@ func NewK8sClient() *K8sClient {
 		Client:  clientset,
 		config:  config,
 		Drainer: d,
-	}
+	}, nil
 }

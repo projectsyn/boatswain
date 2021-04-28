@@ -1,6 +1,9 @@
 package aws
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -9,7 +12,29 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssm"
 )
 
-func NewAwsClient(roleArn string) *AwsClient {
+var (
+	awsEnvVars = []string{
+		"AWS_REGION",
+		"AWS_ACCESS_KEY_ID",
+		"AWS_SECRET_ACCESS_KEY",
+	}
+)
+
+func verifyAwsEnvVars() error {
+	for _, e := range awsEnvVars {
+		_, ok := os.LookupEnv(e)
+		if !ok {
+			return fmt.Errorf("Environment variable %s is mandatory", e)
+		}
+	}
+	return nil
+}
+
+func NewAwsClient(roleArn string) (*AwsClient, error) {
+	if err := verifyAwsEnvVars(); err != nil {
+		return nil, err
+	}
+
 	c := &AwsClient{}
 
 	c.Session = session.New()
@@ -23,5 +48,5 @@ func NewAwsClient(roleArn string) *AwsClient {
 	c.EC2 = ec2.New(c.Session, c.Config)
 	c.SSM = ssm.New(c.Session, c.Config)
 
-	return c
+	return c, nil
 }

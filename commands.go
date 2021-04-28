@@ -21,7 +21,10 @@ type CheckAmiCmd struct {
 }
 
 func (c *CheckAmiCmd) Run(ctx *kong.Context) error {
-	b := boatswain.New(c.AwsAssumeRoleArn)
+	b, err := boatswain.New(c.AwsAssumeRoleArn)
+	if err != nil {
+		return err
+	}
 	return b.CheckAmi(c.EksVersion)
 }
 
@@ -30,7 +33,10 @@ type ListUpgradableCmd struct {
 }
 
 func (c *ListUpgradableCmd) Run(ctx *kong.Context) error {
-	b := boatswain.New(c.AwsAssumeRoleArn)
+	b, err := boatswain.New(c.AwsAssumeRoleArn)
+	if err != nil {
+		return err
+	}
 	instances, err := b.ListUpgradable()
 	if err != nil {
 		return err
@@ -53,6 +59,9 @@ type UpgradeCmd struct {
 }
 
 func (c *UpgradeCmd) Run(ctx *kong.Context) error {
-	b := boatswain.New(c.AwsAssumeRoleArn)
+	b, err := boatswain.New(c.AwsAssumeRoleArn)
+	if err != nil {
+		return err
+	}
 	return b.Upgrade(c.SingleNode, c.ForceReplace)
 }
