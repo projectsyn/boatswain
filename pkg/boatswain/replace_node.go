@@ -44,7 +44,7 @@ func ReplaceAsgNode(awsClient *aws.AwsClient, k8sClient *k8sclient.K8sClient,
 		if err := k8sClient.DrainNode(node); err != nil {
 			fmt.Println("Drain error: ", err)
 			if err == k8sclient.ErrTransientDrain {
-				time.Sleep(5)
+				time.Sleep(5 * time.Second)
 				continue
 			}
 			fmt.Println("Ignoring error...")
