@@ -24,7 +24,7 @@ func verifyAwsEnvVars() error {
 	for _, e := range awsEnvVars {
 		_, ok := os.LookupEnv(e)
 		if !ok {
-			return fmt.Errorf("Environment variable %s is mandatory", e)
+			return fmt.Errorf("environment variable %s is mandatory", e)
 		}
 	}
 	return nil
