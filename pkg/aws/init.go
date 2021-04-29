@@ -37,7 +37,11 @@ func NewAwsClient(roleArn string) (*AwsClient, error) {
 
 	c := &AwsClient{}
 
-	c.Session = session.New()
+	var err error
+	c.Session, err = session.NewSession()
+	if err != nil {
+		return nil, err
+	}
 
 	if roleArn != "" {
 		creds := stscreds.NewCredentials(c.Session, roleArn)
