@@ -11,7 +11,7 @@ import (
 func (c *K8sClient) WaitUntilNoPodsPending() error {
 	// TODO: consider WaitGroup and go-routine, instead of sleeping on
 	// main thread
-	for true {
+	for {
 		pods, err := c.Client.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
 			return err

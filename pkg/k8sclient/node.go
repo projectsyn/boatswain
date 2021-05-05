@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
-	//"k8s.io/apimachinery/pkg/api/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubectl/pkg/drain"
@@ -16,7 +16,7 @@ import (
 func (c *K8sClient) GetNodes() NodeMap {
 	nodes, err := c.Client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		panic(err.Error())
+		log.Fatal(err.Error())
 	}
 	nodesByName := NodeMap{}
 	for _, node := range nodes.Items {
@@ -33,7 +33,7 @@ func (c *K8sClient) CordonNode(node *corev1.Node) error {
 	return drain.RunCordonOrUncordon(c.Drainer, node, true)
 }
 
-var TransientDrainError = errors.New("Server unable to handle drain request")
+var ErrTransientDrain = errors.New("server unable to handle drain request")
 
 func (c *K8sClient) DrainNode(node *corev1.Node) error {
 	fmt.Println("Draining node", node.ObjectMeta.Name)
@@ -46,7 +46,7 @@ func (c *K8sClient) DrainNode(node *corev1.Node) error {
 		if strings.HasPrefix(errStr, "[error when evicting pod") {
 			realErrStr := strings.SplitN(errStr, ": ", 2)[1]
 			if strings.HasPrefix(realErrStr, "the server is currently unable to handle the request") {
-				return TransientDrainError
+				return ErrTransientDrain
 			}
 		}
 	}

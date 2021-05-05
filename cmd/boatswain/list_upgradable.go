@@ -1,6 +1,8 @@
 package boatswain
 
 import (
+	"fmt"
+
 	"github.com/projectsyn/boatswain/pkg/aws"
 )
 
@@ -9,7 +11,7 @@ func (b *Boatswain) ListUpgradable() ([]*aws.Instance, error) {
 
 	asgs, err := b.AwsClient.GetAutoScalingGroups()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getting ASGs: %w", err)
 	}
 
 	instances := []*aws.Instance{}
