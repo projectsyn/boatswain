@@ -25,6 +25,11 @@ func (b *Boatswain) Upgrade(singleNode string, forceReplace bool) error {
 			asg.AutoScalingGroupName, asg.DesiredCapacity, asg.MaxSize, asg.LaunchTemplateVersion)
 		if asg.DesiredCapacity > 0 {
 			for _, i := range asg.Instances {
+				node, ok := nodes[i.InstancePrivateDnsName]
+				if !ok {
+					fmt.Printf("Skipping instance %v, no matching K8s node\n", i.InstancePrivateDnsName)
+					continue
+				}
 				if singleNode != "" {
 					if i.InstancePrivateDnsName == singleNode {
 						fmt.Printf("found node %v (%v) -- replacing it\n",
@@ -33,7 +38,7 @@ func (b *Boatswain) Upgrade(singleNode string, forceReplace bool) error {
 							b.K8sClient,
 							asg,
 							i,
-							nodes[i.InstancePrivateDnsName]); err != nil {
+							node); err != nil {
 							log.Fatal(err.Error())
 						}
 					}
@@ -45,7 +50,7 @@ func (b *Boatswain) Upgrade(singleNode string, forceReplace bool) error {
 							b.K8sClient,
 							asg,
 							i,
-							nodes[i.InstancePrivateDnsName]); err != nil {
+							node); err != nil {
 							log.Fatal(err.Error())
 						}
 					}
