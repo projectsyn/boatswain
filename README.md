@@ -1,3 +1,8 @@
+# ⚠️ Repo Archive Notice
+
+As of Feb 16, 2022, Boatswain will no longer be updated.
+The functionallity is now provided by [Managed node groups](https://docs.aws.amazon.com/eks/latest/userguide/managed-node-groups.html).
+
 # Boatswain
 
 Boatswain is a PoC implementation for doing EKS node maintenance/upgrades by
